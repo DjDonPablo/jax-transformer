@@ -7,7 +7,7 @@ class TransformerConfig:
         embedding_dim: int = 512,
         key_query_dim: int = 64,
         context_size: int = 512,
-        nb_blocks: int = 6,
+        nb_layers: int = 6,
         nb_heads: int = 8,
         batch_size: int = 64,
         warmup_steps: int = 4000,
@@ -27,7 +27,7 @@ class TransformerConfig:
         self.embedding_dim = embedding_dim
         self.key_query_dim = key_query_dim
         self.context_size = context_size
-        self.nb_blocks = nb_blocks
+        self.nb_layers = nb_layers
         self.nb_heads = nb_heads
 
         # training
@@ -48,13 +48,27 @@ class TransformerConfig:
         # ~ 1e5 steps for training
 
     def get_model_size(self) -> int:
-        return 1
-
-    def get_lr(self, step: int) -> float:
-        return (self.embedding_size**-0.5) * min(
-            step**-0.5, step * (self.warmup_steps**-1.5)
+        embedding = unembedding = self.vocab_size * self.embedding_dim
+        query = key = value = (
+            (self.embedding_dim * self.key_query_dim) * self.nb_heads * self.nb_layers
+        )
+        output = (
+            self.nb_heads * self.key_query_dim * self.embedding_dim * self.nb_layers
+        )
+        mlp_weight = (4 * self.embedding_dim) * self.embedding_dim * 2 * self.nb_layers
+        mlp_bias = (4 * self.embedding_dim + self.embedding_dim) * self.nb_layers
+        return (
+            embedding
+            + unembedding
+            + key
+            + query
+            + value
+            + output
+            + mlp_weight
+            + mlp_bias
         )
 
-
-config = TransformerConfig()
-print(config.get_lr(2000))
+    def get_lr(self, step: int) -> float:
+        return (self.embedding_dim**-0.5) * min(
+            step**-0.5, step * (self.warmup_steps**-1.5)
+        )
