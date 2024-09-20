@@ -2,7 +2,7 @@ import jax.numpy as jnp
 
 from config import TransformerConfig
 from layers.layer import Layer
-from jax import random
+from jax import jit, random
 from jax._src.random import KeyArray
 
 
