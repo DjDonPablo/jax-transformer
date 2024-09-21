@@ -16,7 +16,7 @@ class Embedding(Layer):
         )
 
     def forward(self, x: jnp.ndarray) -> jnp.ndarray:
-        return self.weights[x]
+        return self.weights[x].T
 
     def __str__(self) -> str:
         return f"Embedding<shape={self.shape}>"

@@ -1,6 +1,7 @@
 import jax.numpy as jnp
 
 from config import TransformerConfig
+from utils import softmax
 from layers.layer import Layer
 from jax import jit, random
 from jax._src.random import KeyArray
@@ -9,13 +10,14 @@ from jax._src.random import KeyArray
 class Unembedding(Layer):
     def __init__(self, config: TransformerConfig, key: KeyArray) -> None:
         super().__init__()
-        self.shape = (config.embedding_dim, config.vocab_size)
+        self.shape = (config.vocab_size, config.embedding_dim)
         self.weights = random.normal(key, self.shape, jnp.float32) * jnp.sqrt(
             1 / config.embedding_dim
         )
+        self.temp = config.temp
 
     def forward(self, x: jnp.ndarray) -> jnp.ndarray:
-        return jnp.dot(x, self.weights)
+        return softmax(jnp.dot(self.weights, x), 0, self.temp)
 
     def __str__(self) -> str:
         return f"Unembedding<shape={self.shape}>"
