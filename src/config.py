@@ -18,6 +18,7 @@ class TransformerConfig:
         label_smoothing: float = 0.1,
         top_k: int = 5,
         temp: float = 1.0,
+        training: bool = True
     ) -> None:
         self.vocab_path = vocab_path
         self.weights_path = weights_path
@@ -45,7 +46,11 @@ class TransformerConfig:
         self.top_k = top_k
         self.temp = temp  # acts on softmax
 
+        # else
+        self.training = training
+
         # ~ 1e5 steps for training
+        # input shape : (batch_size, context_size)
 
     def get_model_size(self) -> int:
         embedding = unembedding = self.vocab_size * self.embedding_dim
