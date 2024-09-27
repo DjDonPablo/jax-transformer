@@ -1,3 +1,4 @@
+import jax
 import jax.numpy as jnp
 
 from jax.nn import initializers, gelu
@@ -15,7 +16,7 @@ class MLP(Layer):
         self.embedding_dim = config.embedding_dim
 
     def init_weights(self, key: KeyArray) -> Dict[str, jnp.ndarray]:
-        _, *subkeys = random.split(key)
+        _, *subkeys = random.split(key, 3)
         initializer = initializers.glorot_normal()
         return {
             "linear1": initializer(
@@ -23,16 +24,18 @@ class MLP(Layer):
                 shape=(4 * self.embedding_dim, self.embedding_dim),
                 dtype=jnp.float32,
             ),
-            "bias1": jnp.zeros(4 * self.embedding_dim),
+            "bias1": jnp.expand_dims(jnp.zeros(4 * self.embedding_dim), 1),
             "linear2": initializer(
                 key=subkeys[1],
                 shape=(self.embedding_dim, 4 * self.embedding_dim),
                 dtype=jnp.float32,
             ),
-            "bias2": jnp.zeros(self.embedding_dim),
+            "bias2": jnp.expand_dims(jnp.zeros(self.embedding_dim), 1),
         }
 
-    def forward(self, weights: Dict[str, jnp.ndarray], x: jnp.ndarray) -> jnp.ndarray:
+    def forward_simple(
+        self, weights: Dict[str, jnp.ndarray], x: jnp.ndarray
+    ) -> jnp.ndarray:
         return (
             jnp.matmul(
                 weights["linear2"],
@@ -40,6 +43,10 @@ class MLP(Layer):
             )
             + weights["bias2"]
         )
+
+    def forward(self, weights: Dict[str, jnp.ndarray], x: jnp.ndarray) -> jnp.ndarray:
+        batch_f = jax.vmap(self.forward_simple, in_axes=[None, 0])
+        return batch_f(weights, x)
 
     def __call__(self, weights: Dict[str, jnp.ndarray], x: jnp.ndarray) -> jnp.ndarray:
         return self.forward(weights, x)

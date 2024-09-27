@@ -14,11 +14,14 @@ def save_data(path: str, data: str) -> None:
         f.write(data)
 
 
-def softmax(x: jnp.ndarray, axis: int, temp: float = 1):
-    x_max = jnp.max(x, axis, keepdims=True)
-    unnormalized = jnp.exp((x - x_max) / temp)
-    result = unnormalized / jnp.sum(unnormalized, axis, keepdims=True)
-    return result
+def softmax_2d(x: jnp.ndarray, temp: float = 1):
+    exp = jnp.exp(x / temp)
+    return (exp.T / jnp.expand_dims(jnp.sum(exp, axis=0), 1)).T
+
+
+def softmax_3d(x: jnp.ndarray, temp: float = 1):
+    exp = jnp.exp(x / temp)
+    return (exp.mT / jnp.expand_dims(jnp.sum(exp, axis=1), 2)).mT
 
 
 def get_token_from_softmax(softmaxed: jnp.ndarray, top_k: int, key: KeyArray):
@@ -26,3 +29,12 @@ def get_token_from_softmax(softmaxed: jnp.ndarray, top_k: int, key: KeyArray):
     probs = values / values.sum()
     n = jax.random.uniform(key)
     return indices[jnp.argmax(n < jnp.cumsum(probs))]
+
+
+def cross_entropy_loss_simple(preds: jnp.ndarray, y: jnp.ndarray):
+    return -jnp.sum(y * jnp.log(preds), axis=0).mean()
+
+
+def cross_entropy_loss(preds: jnp.ndarray, y: jnp.ndarray):
+    batch_f = jax.vmap(cross_entropy_loss_simple)
+    return batch_f(preds, y)

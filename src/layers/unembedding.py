@@ -1,8 +1,9 @@
 from typing import Dict
+import jax
 import jax.numpy as jnp
 
 from config import TransformerConfig
-from utils import softmax
+from utils import softmax_2d
 from layers.layer import Layer
 from jax import random
 from jax._src.random import KeyArray
@@ -21,8 +22,14 @@ class Unembedding(Layer):
             * jnp.sqrt(1 / self.shape[1])
         }
 
+    def forward_simple(
+        self, weights: Dict[str, jnp.ndarray], x: jnp.ndarray
+    ) -> jnp.ndarray:
+        return softmax_2d(jnp.matmul(weights["weights"], x), self.temp)
+
     def forward(self, weights: Dict[str, jnp.ndarray], x: jnp.ndarray) -> jnp.ndarray:
-        return softmax(jnp.dot(weights["weights"], x), 0, self.temp)
+        batch_f = jax.vmap(self.forward_simple, in_axes=[None, 0])
+        return batch_f(weights, x)
 
     def __call__(self, weights: Dict[str, jnp.ndarray], x: jnp.ndarray) -> jnp.ndarray:
         return self.forward(weights, x)

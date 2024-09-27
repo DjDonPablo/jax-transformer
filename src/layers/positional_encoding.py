@@ -1,3 +1,4 @@
+import jax
 import jax.numpy as jnp
 
 from typing import Dict
@@ -29,8 +30,14 @@ class PositionalEncoding(Layer):
     def init_weights(self, key: KeyArray) -> Dict[str, jnp.ndarray]:
         return {}
 
-    def forward(self, weights: Dict[str, jnp.ndarray], x: jnp.ndarray) -> jnp.ndarray:
+    def forward_simple(
+        self, weights: Dict[str, jnp.ndarray], x: jnp.ndarray
+    ) -> jnp.ndarray:
         return x + self.positional_encoding[: x.shape[1]].T
+
+    def forward(self, weights: Dict[str, jnp.ndarray], x: jnp.ndarray) -> jnp.ndarray:
+        batch_f = jax.vmap(self.forward_simple, in_axes=[None, 0])
+        return batch_f(weights, x)
 
     def __call__(self, weights: Dict[str, jnp.ndarray], x: jnp.ndarray) -> jnp.ndarray:
         return self.forward(weights, x)

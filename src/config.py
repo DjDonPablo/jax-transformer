@@ -10,7 +10,7 @@ class TransformerConfig:
         nb_layers: int = 6,
         nb_heads: int = 8,
         batch_size: int = 64,
-        warmup_steps: int = 4000,
+        warmup_steps: int = 2000,
         beta1: float = 0.9,
         beta2: float = 0.98,
         epsilon: float = 1e-9,
@@ -18,7 +18,8 @@ class TransformerConfig:
         label_smoothing: float = 0.1,
         top_k: int = 5,
         temp: float = 1.0,
-        training: bool = True
+        training: bool = True,
+        use_existing_weights: bool = False,
     ) -> None:
         self.vocab_path = vocab_path
         self.weights_path = weights_path
@@ -48,6 +49,7 @@ class TransformerConfig:
 
         # else
         self.training = training
+        self.use_existing_weights = use_existing_weights
 
         # ~ 1e5 steps for training
         # input shape : (batch_size, context_size)

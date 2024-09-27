@@ -1,3 +1,4 @@
+import jax
 import jax.numpy as jnp
 
 from typing import Dict
@@ -19,8 +20,14 @@ class Embedding(Layer):
             * jnp.sqrt(1 / self.shape[1])
         }
 
+    def forward_simple(
+        self, weights: Dict[str, jnp.ndarray], x: jnp.ndarray
+    ) -> jnp.ndarray:
+        return jnp.matmul(weights["weights"].T, x.T)  # weights["weights"][x].T
+
     def forward(self, weights: Dict[str, jnp.ndarray], x: jnp.ndarray) -> jnp.ndarray:
-        return weights["weights"][x].T
+        batch_f = jax.vmap(self.forward_simple, in_axes=[None, 0])
+        return batch_f(weights, x)
 
     def __call__(self, weights: Dict[str, jnp.ndarray], x: jnp.ndarray) -> jnp.ndarray:
         return self.forward(weights, x)

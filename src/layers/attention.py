@@ -1,11 +1,12 @@
+import jax
 import jax.numpy as jnp
 
 from jax.nn import initializers
 from typing import Dict
 from config import TransformerConfig
-from utils import softmax
+from utils import softmax_3d
 from layers.layer import Layer
-from jax import random
+from jax import lax, random
 from jax._src.random import KeyArray
 
 
@@ -43,21 +44,41 @@ class Attention(Layer):
             ),
         }
 
-    def forward(self, weights: Dict[str, jnp.ndarray], x: jnp.ndarray) -> jnp.ndarray:
+    def breakpoint_if_nonfinite(self, x: jnp.ndarray):
+        is_finite = jnp.isnan(x).all()
+
+        def true_fn(x):
+            pass
+
+        def false_fn(x):
+            jax.debug.breakpoint()
+
+        lax.cond(is_finite, false_fn, true_fn, x)
+
+    def forward_simple(
+        self, weights: Dict[str, jnp.ndarray], x: jnp.ndarray
+    ) -> jnp.ndarray:
         queries = jnp.matmul(weights["query_weights"], x)
         keys = jnp.matmul(weights["key_weights"], x)
-        dots = jnp.triu(jnp.matmul(keys.mT, queries) / self.scale_factor)
+        dots = jnp.matmul(keys.mT, queries) / self.scale_factor
+        hm = jnp.triu(jnp.ones_like(dots))
         del queries
         del keys
 
-        masked = dots.at[dots == 0].set(float("-inf"))
-        softmaxed = softmax(masked, 1)
+        masked = jnp.where(hm, dots, float("-inf"))
+        # self.breakpoint_if_nonfinite(masked)
+        softmaxed = softmax_3d(masked)
+        del dots
         del masked
 
         values = jnp.matmul(weights["value_weights"], x)
         summed = jnp.matmul(values, softmaxed)
         concat = jnp.concatenate(summed, axis=0)
         return jnp.dot(weights["output_weights"], concat)
+
+    def forward(self, weights: Dict[str, jnp.ndarray], x: jnp.ndarray) -> jnp.ndarray:
+        batch_f = jax.vmap(self.forward_simple, in_axes=[None, 0])
+        return batch_f(weights, x)
 
     def __call__(self, weights: Dict[str, jnp.ndarray], x: jnp.ndarray) -> jnp.ndarray:
         return self.forward(weights, x)

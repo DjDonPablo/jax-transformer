@@ -20,11 +20,17 @@ class Dropout(Layer):
     def init_weights(self, key: KeyArray) -> Dict[str, jnp.ndarray]:
         return {}
 
-    def forward(self, weights: Dict[str, jnp.ndarray], x: jnp.ndarray) -> jnp.ndarray:
+    def forward_simple(
+        self, weights: Dict[str, jnp.ndarray], x: jnp.ndarray
+    ) -> jnp.ndarray:
         if not self.training:
             return x
         self.key, k = jax.random.split(self.key)
-        return random.bernoulli(k, self.p, self.shape) * x
+        return random.bernoulli(k, 1 - self.p, self.shape) * x
+
+    def forward(self, weights: Dict[str, jnp.ndarray], x: jnp.ndarray) -> jnp.ndarray:
+        batch_f = jax.vmap(self.forward_simple, in_axes=[None, 0])
+        return batch_f(weights, x)
 
     def __call__(self, weights: Dict[str, jnp.ndarray], x: jnp.ndarray) -> jnp.ndarray:
         return self.forward(weights, x)
