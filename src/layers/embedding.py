@@ -8,6 +8,13 @@ from jax import random
 from jax._src.random import KeyArray
 
 
+@jax.jit
+def forward_simple_embedding(
+    weights: Dict[str, jnp.ndarray], x: jnp.ndarray
+) -> jnp.ndarray:
+    return jnp.matmul(weights["weights"].T, x.T)
+
+
 class Embedding(Layer):
     def __init__(self, config: TransformerConfig, name: str) -> None:
         super().__init__()
@@ -20,13 +27,8 @@ class Embedding(Layer):
             * jnp.sqrt(1 / self.shape[1])
         }
 
-    def forward_simple(
-        self, weights: Dict[str, jnp.ndarray], x: jnp.ndarray
-    ) -> jnp.ndarray:
-        return jnp.matmul(weights["weights"].T, x.T)  # weights["weights"][x].T
-
     def forward(self, weights: Dict[str, jnp.ndarray], x: jnp.ndarray) -> jnp.ndarray:
-        batch_f = jax.vmap(self.forward_simple, in_axes=[None, 0])
+        batch_f = jax.vmap(forward_simple_embedding, in_axes=[None, 0])
         return batch_f(weights, x)
 
     def __call__(self, weights: Dict[str, jnp.ndarray], x: jnp.ndarray) -> jnp.ndarray:

@@ -14,11 +14,13 @@ def save_data(path: str, data: str) -> None:
         f.write(data)
 
 
+@jax.jit
 def softmax_2d(x: jnp.ndarray, temp: float = 1):
     exp = jnp.exp(x / temp)
     return (exp.T / jnp.expand_dims(jnp.sum(exp, axis=0), 1)).T
 
 
+@jax.jit
 def softmax_3d(x: jnp.ndarray, temp: float = 1):
     exp = jnp.exp(x / temp)
     return (exp.mT / jnp.expand_dims(jnp.sum(exp, axis=1), 2)).mT
@@ -31,10 +33,11 @@ def get_token_from_softmax(softmaxed: jnp.ndarray, top_k: int, key: KeyArray):
     return indices[jnp.argmax(n < jnp.cumsum(probs))]
 
 
+@jax.jit
 def cross_entropy_loss_simple(preds: jnp.ndarray, y: jnp.ndarray):
     return -jnp.sum(y * jnp.log(preds), axis=0).mean()
 
-
+@jax.jit
 def cross_entropy_loss(preds: jnp.ndarray, y: jnp.ndarray):
     batch_f = jax.vmap(cross_entropy_loss_simple)
     return batch_f(preds, y)

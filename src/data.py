@@ -1,3 +1,4 @@
+from functools import partial
 import jax
 import jax.numpy as jnp
 
@@ -28,15 +29,16 @@ def format_file(path: str, save_path: str):
             f.write(line)
 
 
+@partial(jax.jit, static_argnums=[1, 2, 3])
 def pad_truncate_y(x: List[int], context_size: int, vocab_size: int, epsilon: float):
     y = jax.nn.one_hot(x[1:], vocab_size)[:context_size]
     y = jnp.where(y, 1 - epsilon, (epsilon / (vocab_size - 1)))  # label smoothing
+    y_padded = jnp.concatenate([y, jnp.zeros((context_size - len(y), vocab_size))]).T
 
-    y_padded = list(
-        jnp.concatenate([y, jnp.zeros((context_size - len(y), vocab_size))]).T
-    )
+    X = jnp.array(x[:context_size] + ([0] * (context_size - len(x))))
+    X = jax.nn.one_hot(X, vocab_size)
 
-    return (x[:context_size] + ([0] * (context_size - len(x))), y_padded)
+    return (X, y_padded)
 
 
 def create_dataset(
@@ -50,9 +52,9 @@ def create_dataset(
         batch_x = []
         batch_y = []
         story = ""
-        batch_index = 0
+        batch_index = 1
 
-        for i, line in enumerate(f):
+        for line in f:
             if line.strip() != "<|endoftext|>":
                 story += line.strip()
             else:

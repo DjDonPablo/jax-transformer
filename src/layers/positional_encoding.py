@@ -7,6 +7,13 @@ from config import TransformerConfig
 from layers.layer import Layer
 
 
+@jax.jit
+def forward_simple_positional_encoding(
+    x: jnp.ndarray, positional_encoding: jnp.ndarray
+) -> jnp.ndarray:
+    return x + positional_encoding[: x.shape[1]].T
+
+
 class PositionalEncoding(Layer):
     def __init__(self, config: TransformerConfig, name: str) -> None:
         super().__init__()
@@ -30,14 +37,9 @@ class PositionalEncoding(Layer):
     def init_weights(self, key: KeyArray) -> Dict[str, jnp.ndarray]:
         return {}
 
-    def forward_simple(
-        self, weights: Dict[str, jnp.ndarray], x: jnp.ndarray
-    ) -> jnp.ndarray:
-        return x + self.positional_encoding[: x.shape[1]].T
-
     def forward(self, weights: Dict[str, jnp.ndarray], x: jnp.ndarray) -> jnp.ndarray:
-        batch_f = jax.vmap(self.forward_simple, in_axes=[None, 0])
-        return batch_f(weights, x)
+        batch_f = jax.vmap(forward_simple_positional_encoding, in_axes=[0, None])
+        return batch_f(x, self.positional_encoding)
 
     def __call__(self, weights: Dict[str, jnp.ndarray], x: jnp.ndarray) -> jnp.ndarray:
         return self.forward(weights, x)

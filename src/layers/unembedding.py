@@ -9,6 +9,13 @@ from jax import random
 from jax._src.random import KeyArray
 
 
+@jax.jit
+def forward_simple_unembedding(
+    weights: Dict[str, jnp.ndarray], x: jnp.ndarray, temp: float
+) -> jnp.ndarray:
+    return softmax_2d(jnp.matmul(weights["weights"], x), temp)
+
+
 class Unembedding(Layer):
     def __init__(self, config: TransformerConfig, name: str) -> None:
         super().__init__()
@@ -22,14 +29,10 @@ class Unembedding(Layer):
             * jnp.sqrt(1 / self.shape[1])
         }
 
-    def forward_simple(
-        self, weights: Dict[str, jnp.ndarray], x: jnp.ndarray
-    ) -> jnp.ndarray:
-        return softmax_2d(jnp.matmul(weights["weights"], x), self.temp)
 
     def forward(self, weights: Dict[str, jnp.ndarray], x: jnp.ndarray) -> jnp.ndarray:
-        batch_f = jax.vmap(self.forward_simple, in_axes=[None, 0])
-        return batch_f(weights, x)
+        batch_f = jax.vmap(forward_simple_unembedding, in_axes=[None, 0, None])
+        return batch_f(weights, x, self.temp)
 
     def __call__(self, weights: Dict[str, jnp.ndarray], x: jnp.ndarray) -> jnp.ndarray:
         return self.forward(weights, x)

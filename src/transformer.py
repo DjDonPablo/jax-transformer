@@ -18,8 +18,6 @@ class Transformer:
     def __init__(self, config: TransformerConfig) -> None:
         self.config = config
         self.weights_dict = {}
-        self.batched_forward: None | Callable = None
-        self.batched_cel: None | Callable = None
 
         self.key = jax.random.key(69)
         self.key, *subkeys = jax.random.split(self.key, 1 + 1 + (config.nb_layers * 2))
@@ -72,10 +70,6 @@ class Transformer:
         self.key, *subkeys = jax.random.split(self.key, 1 + len(self.layers))
         for i, layer in enumerate(self.layers):
             self.weights_dict[layer.name] = layer.init_weights(subkeys[i])
-
-    def init_batched_functions(self):
-        self.batched_forward = jax.vmap(self.forward, in_axes=[None, 0])
-        self.batched_cel = jax.vmap(cross_entropy_loss)
 
     def forward(self, weights_dict: Dict[str, Dict[str, jnp.ndarray]], x: jnp.ndarray):
         residual = x

@@ -19,7 +19,6 @@ class TransformerConfig:
         top_k: int = 5,
         temp: float = 1.0,
         training: bool = True,
-        use_existing_weights: bool = False,
     ) -> None:
         self.vocab_path = vocab_path
         self.weights_path = weights_path
@@ -49,7 +48,6 @@ class TransformerConfig:
 
         # else
         self.training = training
-        self.use_existing_weights = use_existing_weights
 
         # ~ 1e5 steps for training
         # input shape : (batch_size, context_size)

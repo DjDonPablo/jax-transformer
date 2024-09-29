@@ -21,7 +21,7 @@ class Dropout(Layer):
         return {}
 
     def forward_simple(
-        self, weights: Dict[str, jnp.ndarray], x: jnp.ndarray
+        self, x: jnp.ndarray
     ) -> jnp.ndarray:
         if not self.training:
             return x
@@ -29,8 +29,8 @@ class Dropout(Layer):
         return random.bernoulli(k, 1 - self.p, self.shape) * x
 
     def forward(self, weights: Dict[str, jnp.ndarray], x: jnp.ndarray) -> jnp.ndarray:
-        batch_f = jax.vmap(self.forward_simple, in_axes=[None, 0])
-        return batch_f(weights, x)
+        batch_f = jax.vmap(self.forward_simple)
+        return batch_f(x)
 
     def __call__(self, weights: Dict[str, jnp.ndarray], x: jnp.ndarray) -> jnp.ndarray:
         return self.forward(weights, x)
