@@ -11,3 +11,4 @@ TODO :
 - add -max in softmax for numerical stability
 - masking on gradients when padded sequence
 - new dataset
+- don't recompute all attention matrix at inference
